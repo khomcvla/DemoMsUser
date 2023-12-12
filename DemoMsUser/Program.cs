@@ -1,24 +1,37 @@
+using DemoMsUser.Common.Extensions;
+using DemoMsUser.Common.Helpers;
+using DemoMsUser.Common.Middlewares;
+using DemoMsUser.Interfaces;
+using DemoMsUser.Repository;
+using DemoMsUser.Services;
+
+//-----------------------------------------------------------------------------
 var builder = WebApplication.CreateBuilder(args);
+builder.AddBaseConfiguration();
 
-// Add services to the container.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+//-----------------------------------------------------------------------------
 var app = builder.Build();
+app.UseMultipleEnvironmentsConfiguration();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseExceptionHandler(ExceptionHandlerHelper.JsonHandler());
 
 app.UseHttpsRedirection();
+app.UseRouting();
+app.UseCors();
 
+// Authentication & Authorization
+app.UseAuthentication();
 app.UseAuthorization();
+
+// Middlewares
+app.UseMiddleware<AccessForbiddenMiddleware>();
 
 app.MapControllers();
 
