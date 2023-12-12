@@ -1,5 +1,5 @@
-﻿using DemoMsUser.Dtos;
-using DemoMsUser.Common.Responses;
+﻿using DemoMsUser.Common.Responses;
+using DemoMsUser.Dtos;
 
 namespace DemoMsUser.Interfaces
 {
