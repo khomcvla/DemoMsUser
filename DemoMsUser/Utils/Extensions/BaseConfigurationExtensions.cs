@@ -1,11 +1,16 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
+using System.Text;
 using System.Text.Json.Serialization;
+using Azure.Identity;
+using Azure.Security.KeyVault.Keys;
+using Azure.Security.KeyVault.Secrets;
 using IdentityServer4.AccessTokenValidation;
 using Microsoft.EntityFrameworkCore;
 using DemoMsUser.Common.Constants;
 using DemoMsUser.Common.Handlers;
 using DemoMsUser.Data;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DemoMsUser.Common.Extensions;
 
@@ -15,6 +20,8 @@ public static class BaseConfigurationExtensions
     {
         builder.Services.AddCors();
         builder.Services.AddControllersWithJsonConfiguration();
+
+        builder.Services.AddAzureKeyVault();
 
         builder.AddLoggingConfiguration();
 
@@ -32,6 +39,30 @@ public static class BaseConfigurationExtensions
         }
 
         return builder;
+    }
+
+    private static IServiceCollection AddAzureKeyVault(this IServiceCollection services)
+    {
+        var valueSecretIssuer = "TEST_SECRET_ISSUER";
+        var valueSecretAudience = "TEST_SECRET_AUDIENCE";
+        var valueSecretSigningKey = "TEST_SECRET_SIGNING_KEY";
+
+        var secretClient = new SecretClient(new Uri("https://{link-to-akv}.vault.azure.net/"), new DefaultAzureCredential());
+        var keyclient = new KeyClient(new Uri("https://{link-to-akv} .vault.azure.net/"), new DefaultAzureCredential());
+
+        KeyVaultSecret resultSecretIssuer = secretClient.GetSecret ("secret-issuer");
+        KeyVaultSecret resultSecretAudience = secretClient.GetSecret("secret-audience");
+        KeyVaultSecret resultSecretSigningKey = secretClient.GetSecret ("issuer-signing-key");
+
+        valueSecretIssuer = resultSecretIssuer.Value;
+        valueSecretAudience = resultSecretAudience.Value;
+        valueSecretSigningKey = resultSecretSigningKey.Value;
+
+        if (string.IsNullOrEmpty(valueSecretIssuer) || string.IsNullOrEmpty(valueSecretAudience) ||
+            string.IsNullOrEmpty(valueSecretSigningKey))
+            throw new Exception (StatusMessages.AccessSecrets);
+
+        return services;
     }
 
     private static IServiceCollection AddControllersWithJsonConfiguration(this IServiceCollection services)
@@ -95,6 +126,26 @@ public static class BaseConfigurationExtensions
         // Rename claims (ex. "http://schemas.microsoft.com/ws/2008/06/identity/claims/role" -> "role")
         JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
+        // Azure Key Vault
+        var valueSecretIssuer = "TEST_SECRET_ISSUER";
+        var valueSecretAudience = "TEST_SECRET_AUDIENCE";
+        var valueSecretSigningKey = "TEST_SECRET_SIGNING_KEY";
+
+        var secretClient = new SecretClient(new Uri("https://{link-to-akv}.vault.azure.net/"), new DefaultAzureCredential());
+        var keyclient = new KeyClient(new Uri("https://{link-to-akv} .vault.azure.net/"), new DefaultAzureCredential());
+
+        KeyVaultSecret resultSecretIssuer = secretClient.GetSecret ("secret-issuer");
+        KeyVaultSecret resultSecretAudience = secretClient.GetSecret("secret-audience");
+        KeyVaultSecret resultSecretSigningKey = secretClient.GetSecret ("issuer-signing-key");
+
+        valueSecretIssuer = resultSecretIssuer.Value;
+        valueSecretAudience = resultSecretAudience.Value;
+        valueSecretSigningKey = resultSecretSigningKey.Value;
+
+        if (string.IsNullOrEmpty(valueSecretIssuer) || string.IsNullOrEmpty(valueSecretAudience) ||
+            string.IsNullOrEmpty(valueSecretSigningKey))
+            throw new Exception (StatusMessages.AccessSecrets);
+
         builder.Services.AddAuthentication(options =>
             {
                 //NOTE: see https://github.com/IdentityServer/IdentityServer4/issues/1525
@@ -110,6 +161,20 @@ public static class BaseConfigurationExtensions
                 options.Authority = "https://localhost:7286/";
                 options.ApiName = assemblyName;
                 options.RequireHttpsMetadata = false;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(valueSecretSigningKey)),
+                    ValidateIssuer = true,
+                    ValidIssuer = valueSecretIssuer,
+                    ValidateAudience = true,
+                    ValidAudience = valueSecretAudience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
             });
 
         return builder;

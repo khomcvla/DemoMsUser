@@ -9,6 +9,9 @@ using DemoMsUser.Services;
 var builder = WebApplication.CreateBuilder(args);
 builder.AddBaseConfiguration();
 
+builder.WebHost.ConfigureKestrel(options => { options.AddServerHeader = false; });
+builder.Configuration.AddEnvironmentVariables();
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 

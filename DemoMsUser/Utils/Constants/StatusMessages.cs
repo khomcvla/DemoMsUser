@@ -3,6 +3,7 @@
     public static class StatusMessages
     {
         public const string AccessForbidden = "Access to this information is restricted due to security constraints for the user!";
+        public const string AccessSecrets = "Access to the secrets is forbidden due to security constraints for the user!";
 
         public const string AlreadyExist = "This unique data already exists in the system.";
 
