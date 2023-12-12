@@ -1,0 +1,25 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-ms-user-deployment
+  labels:
+    app: demo-ms-user
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: demo-ms-user
+  template:
+    metadata:
+      labels:
+        app: demo-ms-user
+    spec:
+      containers:
+        - name: ms-user
+          image: khomcvla.azurecr.io/demo-ms-user:latest
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+          ports:
+            - containerPort: 80
+            - containerPort: 443

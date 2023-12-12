@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-ms-user-service
+  labels:
+    app: demo-ms-user
+spec:
+  type: ClusterIP
+  selector:
+    app: demo-ms-user
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5035
+      targetPort: 80
+    - name: https
+      protocol: TCP
+      port: 7140
+      targetPort: 443
